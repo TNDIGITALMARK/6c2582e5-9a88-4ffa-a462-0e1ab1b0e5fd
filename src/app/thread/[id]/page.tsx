@@ -60,7 +60,7 @@ export default function ThreadPage({ params }: { params: Promise<{ id: string }>
             <div className="flex items-center gap-2 mb-4 pb-4 border-b border-border">
               <CheckCircle2 className="w-5 h-5 text-green-600" />
               <span className="text-sm font-semibold text-green-600">
-                Solved - Original Creator Identified
+                Solved - Original @ found
               </span>
             </div>
           )}
