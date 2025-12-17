@@ -28,8 +28,8 @@ export default function DiscoveryFeed() {
   const pullThreshold = 80; // Pixels to pull before triggering refresh
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Fetch requests from database
-  const fetchRequests = useCallback(async (showRefreshIndicator = false) => {
+  // Fetch requests from database - useCallback removed to prevent unnecessary recreations
+  const fetchRequests = async (showRefreshIndicator = false) => {
     if (showRefreshIndicator) {
       setRefreshing(true);
     } else {
@@ -64,12 +64,22 @@ export default function DiscoveryFeed() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [sortMode, filterMode]);
+  };
 
-  // Initial load
+  // Initial load only - fetch once on mount
   useEffect(() => {
     fetchRequests();
-  }, [fetchRequests]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array - only run on mount
+
+  // Refetch when filters or sort mode change (explicit user action)
+  useEffect(() => {
+    // Skip the initial render (handled by the mount effect above)
+    if (requests.length > 0 || error !== null) {
+      fetchRequests();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sortMode, filterMode]);
 
   // Manual refresh handler
   const handleRefresh = () => {
@@ -249,8 +259,8 @@ export default function DiscoveryFeed() {
           </div>
         )}
 
-        {/* Error State */}
-        {error && !loading && (
+        {/* Error State - Only show if there's an actual error AND no data */}
+        {error && !loading && requests.length === 0 && (
           <div className="mx-4 mb-4 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
             <p className="text-sm text-destructive mb-2">{error}</p>
             <button
@@ -263,17 +273,22 @@ export default function DiscoveryFeed() {
         )}
 
         {/* Feed Cards - Full-card inline display (no spacing between cards) */}
-        {!loading && !error && (
+        {!loading && (
           <div>
-            {requests.length === 0 ? (
+            {requests.length === 0 && !error ? (
               <div className="px-4 py-16 text-center">
-                <p className="text-muted-foreground mb-4">
-                  No posts found. {filterMode !== 'all' && 'Try changing your filters.'}
+                <p className="text-lg font-semibold text-foreground mb-2">
+                  No posts yet
+                </p>
+                <p className="text-sm text-muted-foreground mb-4">
+                  {filterMode !== 'all'
+                    ? 'Try changing your filters to see more posts.'
+                    : 'Be the first to create an attribution request!'}
                 </p>
                 {filterMode !== 'all' && (
                   <button
                     onClick={() => setFilterMode('all')}
-                    className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium"
+                    className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
                   >
                     View all posts
                   </button>
