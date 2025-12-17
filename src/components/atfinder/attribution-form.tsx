@@ -138,7 +138,7 @@ export function AttributionForm() {
           disabled={isSubmitting || (!linkMode && !url)}
           className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-medium py-3 h-auto rounded-lg"
         >
-          {isSubmitting ? 'Submitting...' : 'Submit Question'}
+          {isSubmitting ? 'Requesting @...' : 'Request @'}
         </Button>
       </form>
     </div>
