@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { ArrowBigUp, MessageCircle, Share2, CheckCircle2, ExternalLink } from 'lucide-react';
 import type { AttributionRequest } from '@/lib/supabase/types';
 import { formatDistanceToNow } from 'date-fns';
@@ -26,7 +26,7 @@ const platformLabels: Record<string, string> = {
   other: 'Other'
 };
 
-export function FeedCard({ request, onCommentClick }: FeedCardProps) {
+const FeedCardComponent = ({ request, onCommentClick }: FeedCardProps) => {
   const [upvoted, setUpvoted] = useState(false);
   const platformColor = request.platform ? platformColors[request.platform] : platformColors.other;
   const platformLabel = request.platform ? platformLabels[request.platform] : platformLabels.other;
@@ -189,4 +189,15 @@ export function FeedCard({ request, onCommentClick }: FeedCardProps) {
       </div>
     </article>
   );
-}
+};
+
+// Memoize to prevent unnecessary re-renders
+export const FeedCard = memo(FeedCardComponent, (prev, next) => {
+  // Only re-render if the request ID or key data changes
+  return (
+    prev.request.id === next.request.id &&
+    prev.request.upvotes === next.request.upvotes &&
+    prev.request.comment_count === next.request.comment_count &&
+    prev.request.answer_count === next.request.answer_count
+  );
+});

@@ -6,36 +6,49 @@ import { FeedCard } from '@/components/atfinder/feed-card';
 import { CommentsModal } from '@/components/atfinder/comments-modal';
 import { getAttributionRequests, getAttributionRequestsByStatus } from '@/lib/supabase/queries';
 import type { AttributionRequest } from '@/lib/supabase/types';
-import { RefreshCw, Loader2 } from 'lucide-react';
+import { RefreshCw, Loader2, AlertCircle } from 'lucide-react';
 
 type SortMode = 'recent' | 'popular';
 type FilterMode = 'all' | 'open' | 'solved';
 
 export default function DiscoveryFeed() {
   const [requests, setRequests] = useState<AttributionRequest[]>([]);
+  const [cachedRequests, setCachedRequests] = useState<AttributionRequest[]>([]); // Keep stale data visible
   const [selectedRequest, setSelectedRequest] = useState<AttributionRequest | null>(null);
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>('recent');
   const [filterMode, setFilterMode] = useState<FilterMode>('all');
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
 
   // Pull-to-refresh state
   const [pullStartY, setPullStartY] = useState(0);
   const [pullDistance, setPullDistance] = useState(0);
   const [isPulling, setIsPulling] = useState(false);
-  const pullThreshold = 80; // Pixels to pull before triggering refresh
+  const pullThreshold = 80;
   const containerRef = useRef<HTMLDivElement>(null);
+  const isFetchingRef = useRef(false); // Prevent concurrent fetches
 
-  // Fetch requests from database - useCallback removed to prevent unnecessary recreations
-  const fetchRequests = async (showRefreshIndicator = false) => {
-    if (showRefreshIndicator) {
-      setRefreshing(true);
-    } else {
-      setLoading(true);
+  // Fetch requests from database with improved error handling
+  const fetchRequests = useCallback(async (isManualRefresh = false) => {
+    // Prevent concurrent fetches
+    if (isFetchingRef.current) return;
+
+    isFetchingRef.current = true;
+
+    // Set appropriate loading state
+    if (isManualRefresh) {
+      setIsRefreshing(true);
+    } else if (!hasLoadedOnce) {
+      setIsInitialLoading(true);
     }
-    setError(null);
+
+    // Clear error only on manual refresh
+    if (isManualRefresh) {
+      setError(null);
+    }
 
     try {
       let result;
@@ -52,34 +65,43 @@ export default function DiscoveryFeed() {
       }
 
       if (result.error) {
-        setError('Failed to load posts. Please try again.');
+        // Only set error if we have no cached data to show
+        if (cachedRequests.length === 0) {
+          setError('Failed to load posts. Showing cached content.');
+        }
         console.error('Error fetching requests:', result.error);
       } else {
+        // Update both current and cached data
         setRequests(result.data);
+        setCachedRequests(result.data);
+        setError(null);
+        setHasLoadedOnce(true);
       }
     } catch (err) {
-      setError('Failed to load posts. Please try again.');
+      // Keep showing cached data on error
+      if (cachedRequests.length === 0) {
+        setError('Failed to load posts. Please try again.');
+      }
       console.error('Unexpected error:', err);
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      setIsInitialLoading(false);
+      setIsRefreshing(false);
+      isFetchingRef.current = false;
     }
-  };
+  }, [sortMode, filterMode, hasLoadedOnce, cachedRequests.length]);
 
-  // Initial load only - fetch once on mount
+  // Initial load - fetch once on mount
   useEffect(() => {
-    fetchRequests();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty dependency array - only run on mount
+    fetchRequests(false);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Refetch when filters or sort mode change (explicit user action)
+  // Refetch when filters or sort mode change
   useEffect(() => {
-    // Skip the initial render (handled by the mount effect above)
-    if (requests.length > 0 || error !== null) {
-      fetchRequests();
+    // Only refetch after initial load has completed
+    if (hasLoadedOnce) {
+      fetchRequests(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sortMode, filterMode]);
+  }, [sortMode, filterMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Manual refresh handler
   const handleRefresh = () => {
@@ -122,7 +144,8 @@ export default function DiscoveryFeed() {
   };
 
   const handleCommentClick = (requestId: string) => {
-    const request = requests.find(r => r.id === requestId);
+    // Look in both current and cached requests
+    const request = requests.find(r => r.id === requestId) || cachedRequests.find(r => r.id === requestId);
     if (request) {
       setSelectedRequest(request);
       setIsCommentsOpen(true);
@@ -136,12 +159,19 @@ export default function DiscoveryFeed() {
 
   // Filter/sort change handlers
   const handleSortChange = (newSort: SortMode) => {
-    setSortMode(newSort);
+    if (newSort !== sortMode) {
+      setSortMode(newSort);
+    }
   };
 
   const handleFilterChange = (newFilter: FilterMode) => {
-    setFilterMode(newFilter);
+    if (newFilter !== filterMode) {
+      setFilterMode(newFilter);
+    }
   };
+
+  // Determine which data to display - prioritize current, fallback to cached
+  const displayRequests = requests.length > 0 ? requests : cachedRequests;
 
   return (
     <div
@@ -185,11 +215,11 @@ export default function DiscoveryFeed() {
           </div>
           <button
             onClick={handleRefresh}
-            disabled={refreshing}
+            disabled={isRefreshing}
             className="p-2 hover:bg-accent rounded-full transition-colors tap-target"
             aria-label="Refresh feed"
           >
-            <RefreshCw className={`w-5 h-5 text-primary ${refreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-5 h-5 text-primary ${isRefreshing ? 'animate-spin' : ''}`} />
           </button>
         </div>
 
@@ -252,66 +282,100 @@ export default function DiscoveryFeed() {
           </button>
         </div>
 
-        {/* Loading State */}
-        {loading && (
-          <div className="flex justify-center items-center py-16">
-            <Loader2 className="w-8 h-8 text-primary animate-spin" />
+        {/* Error Banner - Show at top if error but we have cached content */}
+        {error && displayRequests.length > 0 && (
+          <div className="mx-4 mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
+            <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm text-amber-900 mb-1 font-medium">
+                Showing cached content
+              </p>
+              <p className="text-xs text-amber-700">
+                Unable to fetch latest posts. Pull down to refresh or{' '}
+                <button
+                  onClick={handleRefresh}
+                  className="text-primary font-medium hover:underline"
+                >
+                  try again
+                </button>
+              </p>
+            </div>
           </div>
         )}
 
-        {/* Error State - Only show if there's an actual error AND no data */}
-        {error && !loading && requests.length === 0 && (
-          <div className="mx-4 mb-4 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
-            <p className="text-sm text-destructive mb-2">{error}</p>
-            <button
-              onClick={() => fetchRequests()}
-              className="text-sm text-primary font-medium hover:underline"
-            >
-              Try again
-            </button>
-          </div>
-        )}
-
-        {/* Feed Cards - Full-card inline display (no spacing between cards) */}
-        {!loading && (
+        {/* Skeleton Loading State - Only on initial load */}
+        {isInitialLoading && !hasLoadedOnce && (
           <div>
-            {requests.length === 0 && !error ? (
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-card border-b border-border">
+                {/* Header skeleton */}
+                <div className="flex items-center justify-between px-4 pt-3 pb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="h-4 w-32 bg-muted rounded animate-pulse" />
+                    <div className="h-5 w-16 bg-muted rounded animate-pulse" />
+                  </div>
+                  <div className="h-3 w-20 bg-muted rounded animate-pulse" />
+                </div>
+                {/* Media skeleton */}
+                <div className="w-full h-80 bg-muted animate-pulse" />
+                {/* Content skeleton */}
+                <div className="px-4 py-3 space-y-2">
+                  <div className="h-4 w-3/4 bg-muted rounded animate-pulse" />
+                  <div className="h-4 w-full bg-muted rounded animate-pulse" />
+                  <div className="h-4 w-2/3 bg-muted rounded animate-pulse" />
+                </div>
+                {/* Actions skeleton */}
+                <div className="flex items-center justify-around border-t border-border px-4 py-2">
+                  <div className="h-8 w-16 bg-muted rounded animate-pulse" />
+                  <div className="h-8 w-16 bg-muted rounded animate-pulse" />
+                  <div className="h-8 w-16 bg-muted rounded animate-pulse" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Feed Cards - Always show available content */}
+        {!isInitialLoading && (
+          <div>
+            {displayRequests.length === 0 ? (
               <div className="px-4 py-16 text-center">
                 <p className="text-lg font-semibold text-foreground mb-2">
-                  No posts yet
+                  {error ? 'Unable to load posts' : 'No posts yet'}
                 </p>
                 <p className="text-sm text-muted-foreground mb-4">
-                  {filterMode !== 'all'
+                  {error
+                    ? 'There was a problem loading the feed. Please check your connection and try again.'
+                    : filterMode !== 'all'
                     ? 'Try changing your filters to see more posts.'
                     : 'Be the first to create an attribution request!'}
                 </p>
-                {filterMode !== 'all' && (
-                  <button
-                    onClick={() => setFilterMode('all')}
-                    className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
-                  >
-                    View all posts
-                  </button>
-                )}
+                <button
+                  onClick={handleRefresh}
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
+                >
+                  {error ? 'Retry' : filterMode !== 'all' ? 'View all posts' : 'Refresh'}
+                </button>
               </div>
             ) : (
-              requests.map((request) => (
-                <FeedCard
-                  key={request.id}
-                  request={request}
-                  onCommentClick={handleCommentClick}
-                />
-              ))
+              <>
+                {displayRequests.map((request) => (
+                  <FeedCard
+                    key={request.id}
+                    request={request}
+                    onCommentClick={handleCommentClick}
+                  />
+                ))}
+                {/* Load More - Placeholder for future pagination */}
+                {displayRequests.length >= 20 && (
+                  <div className="py-8 text-center">
+                    <button className="px-6 py-3 bg-muted text-foreground hover:bg-accent rounded-lg text-sm font-medium transition-colors">
+                      Load More
+                    </button>
+                  </div>
+                )}
+              </>
             )}
-          </div>
-        )}
-
-        {/* Load More - Placeholder for future pagination */}
-        {!loading && !error && requests.length >= 20 && (
-          <div className="py-8 text-center">
-            <button className="px-6 py-3 bg-muted text-foreground hover:bg-accent rounded-lg text-sm font-medium transition-colors">
-              Load More
-            </button>
           </div>
         )}
       </main>

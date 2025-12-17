@@ -7,6 +7,7 @@ import { ZyloProvider } from "@/lib/zylo/provider";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { FeedErrorBoundary } from "@/components/atfinder/error-boundary";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -101,11 +102,13 @@ export default function RootLayout({
               enableSystem
               disableTransitionOnChange
             >
-              <TooltipProvider>
-                {children}
-                <Toaster />
-                <Sonner />
-              </TooltipProvider>
+              <FeedErrorBoundary>
+                <TooltipProvider>
+                  {children}
+                  <Toaster />
+                  <Sonner />
+                </TooltipProvider>
+              </FeedErrorBoundary>
             </ThemeProvider>
           </ZyloProvider>
         </QueryProvider>
