@@ -17,6 +17,7 @@ export function CommentsModal({ isOpen, onClose, request }: CommentsModalProps) 
   const [selectedAnswer, setSelectedAnswer] = useState<Answer | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
+  const [upvotedComments, setUpvotedComments] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (isOpen) {
@@ -72,6 +73,18 @@ export function CommentsModal({ isOpen, onClose, request }: CommentsModalProps) 
       setComments([...comments, newCommentObj]);
       setNewComment('');
     }
+  };
+
+  const handleCommentUpvote = (commentId: string) => {
+    setUpvotedComments(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(commentId)) {
+        newSet.delete(commentId);
+      } else {
+        newSet.add(commentId);
+      }
+      return newSet;
+    });
   };
 
   if (!isOpen) return null;
@@ -215,9 +228,16 @@ export function CommentsModal({ isOpen, onClose, request }: CommentsModalProps) 
                           {comment.content}
                         </p>
                         <div className="flex items-center gap-3">
-                          <button className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary">
-                            <ArrowBigUp className="w-4 h-4" />
-                            <span>{comment.upvotes}</span>
+                          <button
+                            onClick={() => handleCommentUpvote(comment.id)}
+                            className={`flex items-center gap-1 text-xs transition-colors ${
+                              upvotedComments.has(comment.id)
+                                ? 'text-primary font-medium'
+                                : 'text-muted-foreground hover:text-primary'
+                            }`}
+                          >
+                            <ArrowBigUp className={`w-4 h-4 ${upvotedComments.has(comment.id) ? 'fill-current' : ''}`} />
+                            <span>{comment.upvotes + (upvotedComments.has(comment.id) ? 1 : 0)}</span>
                           </button>
                           <button className="text-xs text-muted-foreground hover:text-primary">
                             Reply
