@@ -1,19 +1,38 @@
 'use client';
 
+import { useState } from 'react';
 import { AtFinderHeader } from '@/components/atfinder/header';
 import { FeedCard } from '@/components/atfinder/feed-card';
+import { CommentsModal } from '@/components/atfinder/comments-modal';
 import { getMockRequests } from '@/lib/mock-data';
+import type { AttributionRequest } from '@/lib/supabase/types';
 
 export default function DiscoveryFeed() {
   const requests = getMockRequests();
+  const [selectedRequest, setSelectedRequest] = useState<AttributionRequest | null>(null);
+  const [isCommentsOpen, setIsCommentsOpen] = useState(false);
+
+  const handleCommentClick = (requestId: string) => {
+    const request = requests.find(r => r.id === requestId);
+    if (request) {
+      setSelectedRequest(request);
+      setIsCommentsOpen(true);
+    }
+  };
+
+  const handleCloseComments = () => {
+    setIsCommentsOpen(false);
+    // Delay clearing selectedRequest to allow animation to complete
+    setTimeout(() => setSelectedRequest(null), 300);
+  };
 
   return (
     <div className="min-h-screen bg-background">
       <AtFinderHeader />
 
-      <main className="container-centered py-6">
+      <main className="max-w-2xl mx-auto">
         {/* Feed Header */}
-        <div className="mb-6">
+        <div className="px-4 pt-6 pb-4">
           <h1 className="text-2xl font-bold text-foreground mb-2">
             @ Discovery Feed
           </h1>
@@ -23,7 +42,7 @@ export default function DiscoveryFeed() {
         </div>
 
         {/* Filter/Sort Bar */}
-        <div className="flex items-center gap-2 mb-6 overflow-x-auto">
+        <div className="flex items-center gap-2 px-4 mb-4 overflow-x-auto">
           <button className="px-4 py-2 bg-primary text-primary-foreground rounded-full text-sm font-medium whitespace-nowrap">
             Recent
           </button>
@@ -38,20 +57,33 @@ export default function DiscoveryFeed() {
           </button>
         </div>
 
-        {/* Feed Cards */}
-        <div className="space-y-4">
+        {/* Feed Cards - Full-card inline display (no spacing between cards) */}
+        <div>
           {requests.map((request) => (
-            <FeedCard key={request.id} request={request} />
+            <FeedCard
+              key={request.id}
+              request={request}
+              onCommentClick={handleCommentClick}
+            />
           ))}
         </div>
 
         {/* Load More */}
-        <div className="mt-8 text-center">
+        <div className="py-8 text-center">
           <button className="px-6 py-3 bg-muted text-foreground hover:bg-accent rounded-lg text-sm font-medium transition-colors">
             Load More
           </button>
         </div>
       </main>
+
+      {/* Comments Modal */}
+      {selectedRequest && (
+        <CommentsModal
+          isOpen={isCommentsOpen}
+          onClose={handleCloseComments}
+          request={selectedRequest}
+        />
+      )}
     </div>
   );
 }

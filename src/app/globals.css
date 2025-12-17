@@ -413,3 +413,77 @@ label {
     padding-right: 0.75rem;
   }
 }
+
+/* ============================================
+   FEED OPTIMIZATIONS (TikTok/Twitter style)
+   ============================================ */
+
+/* Smooth scrolling for feed */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Touch-optimized scrolling on mobile */
+body {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
+/* Optimize video/image rendering */
+video, img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Hardware acceleration for smooth animations */
+article, button, .modal {
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+/* Prevent text selection on double-tap (like TikTok) */
+.feed-card {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Allow text selection in description areas */
+.feed-card p, .feed-card h3 {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Fast tap feedback */
+button:active {
+  transform: scale(0.98);
+}
+
+/* Smooth modal animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.modal-backdrop {
+  animation: fadeIn 0.2s ease-out;
+}
+
+.modal-panel {
+  animation: slideUp 0.3s ease-out;
+}
