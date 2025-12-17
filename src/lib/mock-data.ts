@@ -10,7 +10,7 @@ export const mockAttributionRequests: AttributionRequest[] = [
     id: 'dummy1',
     tenantid: TENANT_ID,
     projectid: PROJECT_ID,
-    title: 'Viral skateboard trick - who's the original creator?',
+    title: 'Viral skateboard trick - who\'s the original creator?',
     description: '"Just learned this insane trick from watching repost after repost. Need to credit the OG! 🛹"\n\nSeen this skateboard trick explode across TikTok and Instagram. Everyone\'s doing it but no one credits the original. Help me find them!',
     media_url: 'https://dummyimage.com/600x800/1a1a1a/1DA1F2.png&text=Skateboard+Trick+%F0%9F%9B%B9',
     media_type: 'video',
