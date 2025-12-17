@@ -19,8 +19,14 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Elegant Flora Boutique",
-  description: "Beautiful AI-powered website creation platform",
+  title: "AtFinder - @ Discovery Platform",
+  description: "Discover and attribute @ mentions across social platforms",
+  icons: {
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/atfinder-logo.jpg', type: 'image/jpeg' }
+    ],
+  },
 };
 
 export default function RootLayout({

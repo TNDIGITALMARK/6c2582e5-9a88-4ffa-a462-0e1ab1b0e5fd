@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Search, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { AtFinderLogo } from './logo';
 
 export function AtFinderHeader() {
   return (
@@ -11,6 +12,7 @@ export function AtFinderHeader() {
         <div className="flex items-center justify-between h-[60px]">
           {/* Left: Logo */}
           <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+            <AtFinderLogo size={36} className="text-primary" />
             <div className="text-2xl font-bold text-foreground">
               AtFinder
             </div>
