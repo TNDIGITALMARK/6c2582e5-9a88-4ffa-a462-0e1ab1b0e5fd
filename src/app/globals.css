@@ -73,41 +73,52 @@ All colors MUST be HSL.
 }
 
 .dark {
-  --background: 222.2 84% 4.9%;
-  --foreground: 210 40% 98%;
+  /* True Black Aesthetic - Background Colors */
+  --background: 0 0% 0%; /* Pure black #000000 */
+  --foreground: 0 0% 100%; /* Pure white #FFFFFF for headings */
 
-  --card: 222.2 84% 4.9%;
-  --card-foreground: 210 40% 98%;
+  /* Cards/Containers - Slightly elevated from true black */
+  --card: 0 0% 7%; /* #121212 for cards/containers */
+  --card-foreground: 0 0% 100%;
 
-  --popover: 222.2 84% 4.9%;
-  --popover-foreground: 210 40% 98%;
+  /* Popovers */
+  --popover: 0 0% 7%;
+  --popover-foreground: 0 0% 100%;
 
-  --primary: 210 40% 98%;
-  --primary-foreground: 222.2 47.4% 11.2%;
+  /* Primary: Twitter Blue #1DA1F2 */
+  --primary: 203 89% 53%; /* #1DA1F2 - vibrant blue */
+  --primary-foreground: 0 0% 100%; /* White text on blue */
 
-  --secondary: 217.2 32.6% 17.5%;
-  --secondary-foreground: 210 40% 98%;
+  /* Secondary buttons/filters: Dark gray with subtle elevation */
+  --secondary: 0 0% 13%; /* #222222 */
+  --secondary-foreground: 0 0% 100%;
 
-  --muted: 217.2 32.6% 17.5%;
-  --muted-foreground: 215 20.2% 65.1%;
+  /* Muted: For helper text and secondary content */
+  --muted: 0 0% 13%; /* #222222 */
+  --muted-foreground: 0 0% 69%; /* #B0B0B0 - soft gray for subtext */
 
-  --accent: 217.2 32.6% 17.5%;
-  --accent-foreground: 210 40% 98%;
+  /* Accent: Hover states for secondary elements */
+  --accent: 0 0% 27%; /* #444444 - hover state for secondary buttons */
+  --accent-foreground: 0 0% 100%;
 
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 210 40% 98%;
+  /* Destructive: Error states */
+  --destructive: 0 70% 50%;
+  --destructive-foreground: 0 0% 100%;
 
-  --border: 217.2 32.6% 17.5%;
-  --input: 217.2 32.6% 17.5%;
-  --ring: 212.7 26.8% 83.9%;
-  --sidebar-background: 240 5.9% 10%;
-  --sidebar-foreground: 240 4.8% 95.9%;
-  --sidebar-primary: 224.3 76.3% 48%;
+  /* Borders and inputs: Subtle gray borders */
+  --border: 0 0% 20%; /* #333333 */
+  --input: 0 0% 13%; /* #222222 */
+  --ring: 203 89% 53%; /* Focus ring matches primary blue #1DA1F2 */
+
+  /* Sidebar */
+  --sidebar-background: 0 0% 0%;
+  --sidebar-foreground: 0 0% 100%;
+  --sidebar-primary: 203 89% 53%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 240 3.7% 15.9%;
-  --sidebar-accent-foreground: 240 4.8% 95.9%;
-  --sidebar-border: 240 3.7% 15.9%;
-  --sidebar-ring: 217.2 91.2% 59.8%;
+  --sidebar-accent: 0 0% 13%;
+  --sidebar-accent-foreground: 0 0% 100%;
+  --sidebar-border: 0 0% 20%;
+  --sidebar-ring: 203 89% 53%;
 }
 
 @theme {
@@ -472,7 +483,41 @@ button:active:not(:disabled), .tap-target:active {
 
 /* Smooth transitions for interactive elements */
 button, .tap-target {
-  transition: transform 0.1s ease, background-color 0.15s ease, color 0.15s ease;
+  transition: transform 0.1s ease, background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Enhanced focus states with subtle glow */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role="button"]:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px hsl(var(--ring) / 0.2), 0 0 12px hsl(var(--ring) / 0.3);
+}
+
+/* Primary button focus glow - vibrant blue */
+.dark button[class*="bg-primary"]:focus-visible,
+.dark [class*="bg-primary"]:focus-visible {
+  box-shadow: 0 0 0 3px hsl(203 89% 53% / 0.3), 0 0 16px hsl(203 89% 53% / 0.4);
+}
+
+/* Secondary button focus with border glow */
+.dark button[class*="bg-secondary"]:focus-visible,
+.dark [class*="secondary"]:focus-visible {
+  box-shadow: 0 0 0 2px hsl(0 0% 40% / 0.5), 0 0 12px hsl(0 0% 40% / 0.3);
+}
+
+/* Primary button tap/active state - darken blue */
+.dark button[class*="bg-primary"]:active:not(:disabled) {
+  background-color: hsl(203 89% 42%); /* Darker blue #1877CC */
+}
+
+/* Secondary button hover state */
+.dark button[class*="bg-secondary"]:hover:not(:disabled),
+.dark button[class*="secondary"]:hover:not(:disabled) {
+  background-color: hsl(0 0% 27%); /* #444444 */
+  box-shadow: 0 0 8px hsl(0 0% 40% / 0.2);
 }
 
 /* Optimize scrolling container */
@@ -510,4 +555,71 @@ button, .tap-target {
 
 .modal-panel {
   animation: slideUp 0.3s ease-out;
+}
+
+/* ============================================
+   TRUE BLACK DARK MODE - TAB/FILTER STYLES
+   ============================================ */
+
+/* Tab filters: Recent, Solved, etc. */
+.dark [role="tablist"] [role="tab"] {
+  color: hsl(0 0% 47%); /* #777777 - inactive gray */
+  font-weight: 500;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+/* Active tab: white text with underline or bold */
+.dark [role="tablist"] [role="tab"][data-state="active"] {
+  color: hsl(0 0% 100%); /* Pure white */
+  font-weight: 700;
+}
+
+/* Active tab underline indicator */
+.dark [role="tablist"] [role="tab"][data-state="active"]::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: hsl(203 89% 53%); /* Blue underline */
+  animation: slideIn 0.2s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* Tab hover/tap state - subtle glow */
+.dark [role="tablist"] [role="tab"]:hover:not([data-state="active"]) {
+  color: hsl(0 0% 80%); /* Lighter gray on hover */
+}
+
+/* Tab focus state */
+.dark [role="tablist"] [role="tab"]:focus-visible {
+  outline: none;
+  color: hsl(0 0% 100%);
+  box-shadow: 0 0 0 2px hsl(203 89% 53% / 0.3), 0 0 8px hsl(203 89% 53% / 0.2);
+  border-radius: 4px;
+}
+
+/* Tab active/tap feedback */
+.dark [role="tablist"] [role="tab"]:active {
+  transform: scale(0.97);
+  color: hsl(0 0% 100%);
+}
+
+/* Link color for dark mode */
+.dark a {
+  color: hsl(203 89% 53%); /* #1DA1F2 - vibrant blue for links */
+}
+
+.dark a:hover {
+  color: hsl(203 89% 42%); /* Darker blue on hover */
 }
