@@ -311,7 +311,7 @@ export default function DiscoveryFeed() {
 
         {/* Filter/Sort Bar - Three-part segmented filter UI */}
         <div className="px-4 mb-4">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
             {/* Sort By Dropdown */}
             <FilterDropdown
               label="Sort by"
@@ -343,12 +343,12 @@ export default function DiscoveryFeed() {
               value={platformMode}
               options={[
                 { value: 'all', label: 'All Platforms' },
-                { value: 'tiktok', label: 'TikTok' },
-                { value: 'instagram', label: 'Instagram' },
-                { value: 'x', label: 'X' },
-                { value: 'youtube', label: 'YouTube' },
-                { value: 'streaming', label: 'Streaming' },
-                { value: 'underground', label: 'Underground Artists' }
+                { value: 'tiktok', label: 'TikTok', icon: '🎵' },
+                { value: 'instagram', label: 'Instagram', icon: '📸' },
+                { value: 'x', label: 'X', icon: '✖️' },
+                { value: 'youtube', label: 'YouTube', icon: '▶️' },
+                { value: 'streaming', label: 'Streaming', icon: '🎮' },
+                { value: 'underground', label: 'Underground Artists', icon: '🎤' }
               ]}
               onChange={(value) => handlePlatformChange(value as PlatformMode)}
               isActive={platformMode !== 'all'}
@@ -362,24 +362,41 @@ export default function DiscoveryFeed() {
                 <span className="font-medium">Active filters:</span>
                 <div className="flex gap-1.5 flex-wrap">
                   {sortMode !== 'popular' && (
-                    <span className="px-2 py-1 bg-primary/10 text-primary rounded-full font-medium">
-                      {sortMode === 'recent' ? 'Recent' : 'Popular'}
-                    </span>
+                    <button
+                      onClick={() => handleSortChange('popular')}
+                      className="group flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary rounded-full font-medium hover:bg-primary/20 transition-colors"
+                      aria-label="Remove Recent filter"
+                    >
+                      <span>{sortMode === 'recent' ? 'Recent' : 'Popular'}</span>
+                      <X className="w-3 h-3 opacity-70 group-hover:opacity-100 transition-opacity" />
+                    </button>
                   )}
                   {filterMode !== 'all' && (
-                    <span className="px-2 py-1 bg-primary/10 text-primary rounded-full font-medium">
-                      {filterMode.charAt(0).toUpperCase() + filterMode.slice(1)}
-                    </span>
+                    <button
+                      onClick={() => handleFilterChange('all')}
+                      className="group flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary rounded-full font-medium hover:bg-primary/20 transition-colors"
+                      aria-label={`Remove ${filterMode} filter`}
+                    >
+                      <span>{filterMode.charAt(0).toUpperCase() + filterMode.slice(1)}</span>
+                      <X className="w-3 h-3 opacity-70 group-hover:opacity-100 transition-opacity" />
+                    </button>
                   )}
                   {platformMode !== 'all' && (
-                    <span className="px-2 py-1 bg-primary/10 text-primary rounded-full font-medium">
-                      {platformMode === 'tiktok' ? 'TikTok' :
-                       platformMode === 'instagram' ? 'Instagram' :
-                       platformMode === 'x' ? 'X' :
-                       platformMode === 'youtube' ? 'YouTube' :
-                       platformMode === 'streaming' ? 'Streaming' :
-                       'Underground Artists'}
-                    </span>
+                    <button
+                      onClick={() => handlePlatformChange('all')}
+                      className="group flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary rounded-full font-medium hover:bg-primary/20 transition-colors"
+                      aria-label="Remove platform filter"
+                    >
+                      <span>
+                        {platformMode === 'tiktok' ? 'TikTok' :
+                         platformMode === 'instagram' ? 'Instagram' :
+                         platformMode === 'x' ? 'X' :
+                         platformMode === 'youtube' ? 'YouTube' :
+                         platformMode === 'streaming' ? 'Streaming' :
+                         'Underground Artists'}
+                      </span>
+                      <X className="w-3 h-3 opacity-70 group-hover:opacity-100 transition-opacity" />
+                    </button>
                   )}
                 </div>
               </div>
@@ -388,7 +405,7 @@ export default function DiscoveryFeed() {
                 className="flex items-center gap-1 px-2 py-1 text-primary hover:text-primary/80 font-medium transition-colors"
               >
                 <X className="w-3.5 h-3.5" />
-                Clear
+                Clear All
               </button>
             </div>
           )}
@@ -449,17 +466,17 @@ export default function DiscoveryFeed() {
 
         {/* Feed Cards - Always show available content */}
         {!isInitialLoading && (
-          <div>
+          <div className="animate-in fade-in duration-300">
             {displayRequests.length === 0 ? (
               <div className="px-4 py-16 text-center">
                 <p className="text-lg font-semibold text-foreground mb-2">
-                  {error ? 'Unable to load posts' : 'No posts yet'}
+                  {error ? 'Unable to load posts' : hasActiveFilters ? 'No posts found' : 'No posts yet'}
                 </p>
                 <p className="text-sm text-muted-foreground mb-4">
                   {error
                     ? 'There was a problem loading the feed. Please check your connection and try again.'
-                    : filterMode !== 'all'
-                    ? 'Try changing your filters to see more posts.'
+                    : hasActiveFilters
+                    ? 'No posts found — try changing filters'
                     : 'Be the first to ask for an @ and help credit creators!'}
                 </p>
                 <div className="flex flex-col gap-2 items-center">
@@ -475,7 +492,7 @@ export default function DiscoveryFeed() {
                       <Button
                         className="bg-primary text-primary-foreground hover:bg-primary/90 font-medium px-4 py-2 rounded-full text-sm"
                       >
-                        Be the first to ask for an @
+                        Ask for an @
                       </Button>
                     </Link>
                   )}
@@ -483,12 +500,17 @@ export default function DiscoveryFeed() {
               </div>
             ) : (
               <>
-                {displayRequests.map((request) => (
-                  <FeedCard
+                {displayRequests.map((request, index) => (
+                  <div
                     key={request.id}
-                    request={request}
-                    onCommentClick={handleCommentClick}
-                  />
+                    className="animate-in fade-in duration-300"
+                    style={{ animationDelay: `${index * 50}ms` }}
+                  >
+                    <FeedCard
+                      request={request}
+                      onCommentClick={handleCommentClick}
+                    />
+                  </div>
                 ))}
                 {/* Load More - Placeholder for future pagination */}
                 {displayRequests.length >= 20 && (
