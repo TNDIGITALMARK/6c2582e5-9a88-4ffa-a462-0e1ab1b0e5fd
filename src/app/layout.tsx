@@ -20,13 +20,25 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AtFinder - @ Discovery Platform",
-  description: "Discover and attribute @ mentions across social platforms",
+  title: "ATF (@Found) - Find the original @. Credit the creator.",
+  description: "AtFinder helps you discover and attribute original creators. Find the source, give credit where it's due.",
   icons: {
     icon: [
-      { url: '/favicon.svg', type: 'image/svg+xml' },
-      { url: '/atfinder-logo.jpg', type: 'image/jpeg' }
+      { url: '/atfinder-logo.png', sizes: 'any' },
+      { url: '/atfinder-logo.png', type: 'image/png' }
     ],
+    apple: [
+      { url: '/atfinder-logo.png', sizes: '180x180', type: 'image/png' }
+    ],
+  },
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#0a0a0f' }
+  ],
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 5,
   },
 };
 
@@ -102,8 +114,8 @@ export default function RootLayout({
           <ZyloProvider>
             <ThemeProvider
               attribute="class"
-              defaultTheme="light"
-              enableSystem
+              defaultTheme="dark"
+              enableSystem={false}
               disableTransitionOnChange
             >
               <FeedErrorBoundary>

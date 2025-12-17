@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import Link from 'next/link';
 import { AtFinderHeader } from '@/components/atfinder/header';
 import { FeedCard } from '@/components/atfinder/feed-card';
 import { CommentsModal } from '@/components/atfinder/comments-modal';
+import { Button } from '@/components/ui/button';
 import { getAttributionRequests, getAttributionRequestsByStatus } from '@/lib/supabase/queries';
 import type { AttributionRequest } from '@/lib/supabase/types';
 import { RefreshCw, Loader2, AlertCircle } from 'lucide-react';
@@ -227,11 +229,11 @@ export default function DiscoveryFeed() {
         {/* Feed Header with Refresh Button */}
         <div className="px-4 pt-6 pb-4 flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground mb-2">
-              @ Discovery Feed
+            <h1 className="text-2xl font-bold text-foreground mb-1.5">
+              ATF (@Found)
             </h1>
             <p className="text-sm text-muted-foreground">
-              Help identify original creators and get credit where credit is due
+              Find the original @. Credit the creator.
             </p>
           </div>
           <button
@@ -369,14 +371,26 @@ export default function DiscoveryFeed() {
                     ? 'There was a problem loading the feed. Please check your connection and try again.'
                     : filterMode !== 'all'
                     ? 'Try changing your filters to see more posts.'
-                    : 'Be the first to create an attribution request!'}
+                    : 'Be the first to ask for an @ and help credit creators!'}
                 </p>
-                <button
-                  onClick={handleRefresh}
-                  className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
-                >
-                  {error ? 'Retry' : filterMode !== 'all' ? 'View all posts' : 'Refresh'}
-                </button>
+                <div className="flex flex-col gap-2 items-center">
+                  {error ? (
+                    <button
+                      onClick={handleRefresh}
+                      className="px-4 py-2 bg-primary text-primary-foreground rounded-full text-sm font-medium hover:bg-primary/90 transition-colors"
+                    >
+                      Try again
+                    </button>
+                  ) : (
+                    <Link href="/ask">
+                      <Button
+                        className="bg-primary text-primary-foreground hover:bg-primary/90 font-medium px-4 py-2 rounded-full text-sm"
+                      >
+                        Be the first to ask for an @
+                      </Button>
+                    </Link>
+                  )}
+                </div>
               </div>
             ) : (
               <>
