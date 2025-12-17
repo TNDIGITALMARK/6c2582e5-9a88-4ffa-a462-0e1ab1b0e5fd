@@ -5,21 +5,24 @@ import Link from 'next/link';
 import { AtFinderHeader } from '@/components/atfinder/header';
 import { FeedCard } from '@/components/atfinder/feed-card';
 import { CommentsModal } from '@/components/atfinder/comments-modal';
+import { FilterDropdown } from '@/components/atfinder/filter-dropdown';
 import { Button } from '@/components/ui/button';
 import { getAttributionRequests, getAttributionRequestsByStatus } from '@/lib/supabase/queries';
 import type { AttributionRequest } from '@/lib/supabase/types';
-import { RefreshCw, Loader2, AlertCircle } from 'lucide-react';
+import { RefreshCw, Loader2, AlertCircle, X } from 'lucide-react';
 
 type SortMode = 'recent' | 'popular';
 type FilterMode = 'all' | 'open' | 'solved';
+type PlatformMode = 'all' | 'tiktok' | 'instagram' | 'x' | 'youtube' | 'streaming' | 'underground';
 
 export default function DiscoveryFeed() {
   const [requests, setRequests] = useState<AttributionRequest[]>([]);
   const [cachedRequests, setCachedRequests] = useState<AttributionRequest[]>([]); // Keep stale data visible
   const [selectedRequest, setSelectedRequest] = useState<AttributionRequest | null>(null);
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
-  const [sortMode, setSortMode] = useState<SortMode>('recent');
+  const [sortMode, setSortMode] = useState<SortMode>('popular');
   const [filterMode, setFilterMode] = useState<FilterMode>('all');
+  const [platformMode, setPlatformMode] = useState<PlatformMode>('all');
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -98,7 +101,7 @@ export default function DiscoveryFeed() {
         setIsInitialLoading(false);
       }
     }
-  }, [sortMode, filterMode, hasLoadedOnce, cachedRequests.length]);
+  }, [sortMode, filterMode, platformMode, hasLoadedOnce, cachedRequests.length]);
 
   // Initial load - fetch once on mount
   useEffect(() => {
@@ -111,7 +114,7 @@ export default function DiscoveryFeed() {
     if (hasLoadedOnce) {
       fetchRequests(false);
     }
-  }, [sortMode, filterMode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [sortMode, filterMode, platformMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Manual refresh handler
   const handleRefresh = () => {
@@ -179,17 +182,77 @@ export default function DiscoveryFeed() {
   const handleSortChange = (newSort: SortMode) => {
     if (newSort !== sortMode) {
       setSortMode(newSort);
+      // Save to localStorage
+      localStorage.setItem('atfinder_sort', newSort);
     }
   };
 
   const handleFilterChange = (newFilter: FilterMode) => {
     if (newFilter !== filterMode) {
       setFilterMode(newFilter);
+      // Save to localStorage
+      localStorage.setItem('atfinder_status', newFilter);
     }
   };
 
-  // Determine which data to display - prioritize current, fallback to cached
-  const displayRequests = requests.length > 0 ? requests : cachedRequests;
+  const handlePlatformChange = (newPlatform: PlatformMode) => {
+    if (newPlatform !== platformMode) {
+      setPlatformMode(newPlatform);
+      // Save to localStorage
+      localStorage.setItem('atfinder_platform', newPlatform);
+    }
+  };
+
+  // Clear all filters
+  const handleClearFilters = () => {
+    setSortMode('popular');
+    setFilterMode('all');
+    setPlatformMode('all');
+    // Clear from localStorage
+    localStorage.removeItem('atfinder_sort');
+    localStorage.removeItem('atfinder_status');
+    localStorage.removeItem('atfinder_platform');
+  };
+
+  // Check if any non-default filters are active
+  const hasActiveFilters = sortMode !== 'popular' || filterMode !== 'all' || platformMode !== 'all';
+
+  // Load saved filters from localStorage on mount
+  useEffect(() => {
+    const savedSort = localStorage.getItem('atfinder_sort') as SortMode | null;
+    const savedStatus = localStorage.getItem('atfinder_status') as FilterMode | null;
+    const savedPlatform = localStorage.getItem('atfinder_platform') as PlatformMode | null;
+
+    if (savedSort) setSortMode(savedSort);
+    if (savedStatus) setFilterMode(savedStatus);
+    if (savedPlatform) setPlatformMode(savedPlatform);
+  }, []);
+
+  // Client-side platform filtering (since API doesn't support it yet)
+  const applyPlatformFilter = (requests: AttributionRequest[]) => {
+    if (platformMode === 'all') return requests;
+
+    const platformKeywords: Record<PlatformMode, string[]> = {
+      all: [],
+      tiktok: ['tiktok', 'tik tok'],
+      instagram: ['instagram', 'ig', 'insta'],
+      x: ['twitter', 'x.com', 'tweet'],
+      youtube: ['youtube', 'yt'],
+      streaming: ['twitch', 'stream', 'kick'],
+      underground: ['soundcloud', 'bandcamp', 'underground']
+    };
+
+    const keywords = platformKeywords[platformMode] || [];
+
+    return requests.filter(request => {
+      const searchText = `${request.description || ''} ${request.media_url || ''}`.toLowerCase();
+      return keywords.some(keyword => searchText.includes(keyword));
+    });
+  };
+
+  // Determine which data to display - prioritize current, fallback to cached, apply platform filter
+  const rawDisplayRequests = requests.length > 0 ? requests : cachedRequests;
+  const displayRequests = applyPlatformFilter(rawDisplayRequests);
 
   return (
     <div
@@ -246,63 +309,89 @@ export default function DiscoveryFeed() {
           </button>
         </div>
 
-        {/* Filter/Sort Bar */}
-        <div className="flex items-center gap-2 px-4 mb-4 overflow-x-auto">
-          {/* Sort Buttons */}
-          <button
-            onClick={() => handleSortChange('recent')}
-            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-              sortMode === 'recent'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted text-foreground hover:bg-accent'
-            }`}
-          >
-            Recent
-          </button>
-          <button
-            onClick={() => handleSortChange('popular')}
-            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-              sortMode === 'popular'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted text-foreground hover:bg-accent'
-            }`}
-          >
-            Popular
-          </button>
+        {/* Filter/Sort Bar - Three-part segmented filter UI */}
+        <div className="px-4 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {/* Sort By Dropdown */}
+            <FilterDropdown
+              label="Sort by"
+              value={sortMode}
+              options={[
+                { value: 'popular', label: 'Popular' },
+                { value: 'recent', label: 'Recent' }
+              ]}
+              onChange={(value) => handleSortChange(value as SortMode)}
+              isActive={sortMode !== 'popular'}
+            />
 
-          <div className="w-px h-6 bg-border mx-1" />
+            {/* Status Dropdown */}
+            <FilterDropdown
+              label="Status"
+              value={filterMode}
+              options={[
+                { value: 'all', label: 'All' },
+                { value: 'open', label: 'Open' },
+                { value: 'solved', label: 'Solved' }
+              ]}
+              onChange={(value) => handleFilterChange(value as FilterMode)}
+              isActive={filterMode !== 'all'}
+            />
 
-          {/* Filter Buttons */}
-          <button
-            onClick={() => handleFilterChange('all')}
-            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-              filterMode === 'all'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted text-foreground hover:bg-accent'
-            }`}
-          >
-            All
-          </button>
-          <button
-            onClick={() => handleFilterChange('solved')}
-            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-              filterMode === 'solved'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted text-foreground hover:bg-accent'
-            }`}
-          >
-            Solved
-          </button>
-          <button
-            onClick={() => handleFilterChange('open')}
-            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-              filterMode === 'open'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted text-foreground hover:bg-accent'
-            }`}
-          >
-            Open
-          </button>
+            {/* Platform Dropdown */}
+            <FilterDropdown
+              label="Platform"
+              value={platformMode}
+              options={[
+                { value: 'all', label: 'All Platforms' },
+                { value: 'tiktok', label: 'TikTok' },
+                { value: 'instagram', label: 'Instagram' },
+                { value: 'x', label: 'X' },
+                { value: 'youtube', label: 'YouTube' },
+                { value: 'streaming', label: 'Streaming' },
+                { value: 'underground', label: 'Underground Artists' }
+              ]}
+              onChange={(value) => handlePlatformChange(value as PlatformMode)}
+              isActive={platformMode !== 'all'}
+            />
+          </div>
+
+          {/* Active Filters Indicator & Clear Button */}
+          {hasActiveFilters && (
+            <div className="mt-3 flex items-center justify-between gap-2 text-xs">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <span className="font-medium">Active filters:</span>
+                <div className="flex gap-1.5 flex-wrap">
+                  {sortMode !== 'popular' && (
+                    <span className="px-2 py-1 bg-primary/10 text-primary rounded-full font-medium">
+                      {sortMode === 'recent' ? 'Recent' : 'Popular'}
+                    </span>
+                  )}
+                  {filterMode !== 'all' && (
+                    <span className="px-2 py-1 bg-primary/10 text-primary rounded-full font-medium">
+                      {filterMode.charAt(0).toUpperCase() + filterMode.slice(1)}
+                    </span>
+                  )}
+                  {platformMode !== 'all' && (
+                    <span className="px-2 py-1 bg-primary/10 text-primary rounded-full font-medium">
+                      {platformMode === 'tiktok' ? 'TikTok' :
+                       platformMode === 'instagram' ? 'Instagram' :
+                       platformMode === 'x' ? 'X' :
+                       platformMode === 'youtube' ? 'YouTube' :
+                       platformMode === 'streaming' ? 'Streaming' :
+                       'Underground Artists'}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <button
+                onClick={handleClearFilters}
+                className="flex items-center gap-1 px-2 py-1 text-primary hover:text-primary/80 font-medium transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+                Clear
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Error Banner - Non-blocking error notification */}
