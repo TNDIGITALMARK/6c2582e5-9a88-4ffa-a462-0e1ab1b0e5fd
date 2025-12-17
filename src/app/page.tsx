@@ -65,11 +65,14 @@ export default function DiscoveryFeed() {
       }
 
       if (result.error) {
-        // Only set error if we have no cached data to show
-        if (cachedRequests.length === 0) {
-          setError('Failed to load posts. Showing cached content.');
-        }
+        // Set error message but keep showing cached/skeleton content
+        setError(cachedRequests.length > 0 ? 'Failed to load latest posts. Showing cached content.' : 'Unable to load posts. Please check your connection and try again.');
         console.error('Error fetching requests:', result.error);
+        // Don't clear initial loading if we have no data - keep skeleton visible
+        if (cachedRequests.length === 0 && !hasLoadedOnce) {
+          // Keep skeleton visible until user manually retries
+          setIsInitialLoading(false);
+        }
       } else {
         // Update both current and cached data
         setRequests(result.data);
@@ -78,15 +81,20 @@ export default function DiscoveryFeed() {
         setHasLoadedOnce(true);
       }
     } catch (err) {
-      // Keep showing cached data on error
-      if (cachedRequests.length === 0) {
-        setError('Failed to load posts. Please try again.');
-      }
+      // Set error message but keep showing cached/skeleton content
+      setError(cachedRequests.length > 0 ? 'Failed to load latest posts. Showing cached content.' : 'Unable to load posts. Please check your connection and try again.');
       console.error('Unexpected error:', err);
+      // Don't clear initial loading if we have no data - keep skeleton visible
+      if (cachedRequests.length === 0 && !hasLoadedOnce) {
+        setIsInitialLoading(false);
+      }
     } finally {
-      setIsInitialLoading(false);
       setIsRefreshing(false);
       isFetchingRef.current = false;
+      // Only clear initial loading if we got data or have cached data
+      if (hasLoadedOnce || cachedRequests.length > 0 || requests.length > 0) {
+        setIsInitialLoading(false);
+      }
     }
   }, [sortMode, filterMode, hasLoadedOnce, cachedRequests.length]);
 
@@ -108,9 +116,11 @@ export default function DiscoveryFeed() {
     fetchRequests(true);
   };
 
-  // Pull-to-refresh handlers
+  // Pull-to-refresh handlers - optimized to only work at scroll top
   const handleTouchStart = (e: React.TouchEvent) => {
-    if (containerRef.current && containerRef.current.scrollTop === 0) {
+    // Only activate pull-to-refresh when scrolled to the very top
+    const scrollTop = containerRef.current?.scrollTop || 0;
+    if (scrollTop <= 5) {  // Small threshold for touch precision
       setPullStartY(e.touches[0].clientY);
       setIsPulling(true);
     }
@@ -121,15 +131,21 @@ export default function DiscoveryFeed() {
 
     const currentY = e.touches[0].clientY;
     const distance = currentY - pullStartY;
+    const scrollTop = containerRef.current?.scrollTop || 0;
 
-    // Only allow pulling down when at the top
-    if (distance > 0 && containerRef.current && containerRef.current.scrollTop === 0) {
-      setPullDistance(Math.min(distance, pullThreshold * 1.5));
+    // Only allow pulling down when at the top and pulling downward
+    if (distance > 0 && scrollTop <= 5) {
+      const dampedDistance = Math.min(distance * 0.5, pullThreshold * 1.5);  // Dampen pull for better feel
+      setPullDistance(dampedDistance);
 
-      // Prevent default scrolling while pulling
-      if (distance > 10) {
+      // Prevent default scrolling while pulling (only when pull is significant)
+      if (distance > 20) {
         e.preventDefault();
       }
+    } else {
+      // Cancel pull if user scrolls down
+      setIsPulling(false);
+      setPullDistance(0);
     }
   };
 
@@ -177,31 +193,36 @@ export default function DiscoveryFeed() {
     <div
       ref={containerRef}
       className="min-h-screen bg-background overflow-y-auto"
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
       style={{ overflowY: 'auto' }}
     >
       <AtFinderHeader />
 
       <main className="max-w-2xl mx-auto">
-        {/* Pull-to-refresh indicator */}
-        {isPulling && (
-          <div
-            className="flex justify-center py-4 transition-all"
-            style={{
-              height: `${Math.min(pullDistance, pullThreshold)}px`,
-              opacity: Math.min(pullDistance / pullThreshold, 1)
-            }}
-          >
-            <RefreshCw
-              className={`w-6 h-6 text-primary ${pullDistance >= pullThreshold ? 'animate-spin' : ''}`}
+        {/* Pull-to-refresh zone - only active at scroll top */}
+        <div
+          className="relative"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
+          {/* Pull-to-refresh indicator */}
+          {isPulling && (
+            <div
+              className="flex justify-center py-4 transition-all"
               style={{
-                transform: `rotate(${Math.min(pullDistance * 3, 360)}deg)`
+                height: `${Math.min(pullDistance, pullThreshold)}px`,
+                opacity: Math.min(pullDistance / pullThreshold, 1)
               }}
-            />
-          </div>
-        )}
+            >
+              <RefreshCw
+                className={`w-6 h-6 text-primary ${pullDistance >= pullThreshold ? 'animate-spin' : ''}`}
+                style={{
+                  transform: `rotate(${Math.min(pullDistance * 3, 360)}deg)`
+                }}
+              />
+            </div>
+          )}
+        </div>
 
         {/* Feed Header with Refresh Button */}
         <div className="px-4 pt-6 pb-4 flex items-start justify-between">
@@ -282,21 +303,21 @@ export default function DiscoveryFeed() {
           </button>
         </div>
 
-        {/* Error Banner - Show at top if error but we have cached content */}
-        {error && displayRequests.length > 0 && (
-          <div className="mx-4 mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
-            <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+        {/* Error Banner - Non-blocking error notification */}
+        {error && (displayRequests.length > 0 || isInitialLoading) && (
+          <div className="mx-4 mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg flex items-start gap-2">
+            <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-500 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
-              <p className="text-sm text-amber-900 mb-1 font-medium">
-                Showing cached content
+              <p className="text-sm text-amber-900 dark:text-amber-100 mb-1 font-medium">
+                {displayRequests.length > 0 ? 'Showing cached content' : 'Connection issue'}
               </p>
-              <p className="text-xs text-amber-700">
-                Unable to fetch latest posts. Pull down to refresh or{' '}
+              <p className="text-xs text-amber-700 dark:text-amber-300">
+                {error}{' '}
                 <button
                   onClick={handleRefresh}
-                  className="text-primary font-medium hover:underline"
+                  className="text-primary font-medium hover:underline inline-flex items-center gap-1"
                 >
-                  try again
+                  Retry
                 </button>
               </p>
             </div>

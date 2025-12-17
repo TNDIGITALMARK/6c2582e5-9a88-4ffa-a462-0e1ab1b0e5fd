@@ -32,17 +32,20 @@ const FeedCardComponent = ({ request, onCommentClick }: FeedCardProps) => {
   const platformLabel = request.platform ? platformLabels[request.platform] : platformLabels.other;
   const timeAgo = formatDistanceToNow(new Date(request.created_at), { addSuffix: true });
 
-  const handleUpvote = () => {
+  const handleUpvote = (e: React.MouseEvent | React.TouchEvent) => {
+    e.stopPropagation();
     setUpvoted(!upvoted);
   };
 
-  const handleComment = () => {
+  const handleComment = (e: React.MouseEvent | React.TouchEvent) => {
+    e.stopPropagation();
     if (onCommentClick) {
       onCommentClick(request.id);
     }
   };
 
-  const handleShare = () => {
+  const handleShare = (e: React.MouseEvent | React.TouchEvent) => {
+    e.stopPropagation();
     // Share functionality
     if (navigator.share) {
       navigator.share({
@@ -53,8 +56,13 @@ const FeedCardComponent = ({ request, onCommentClick }: FeedCardProps) => {
     }
   };
 
+  const handleMediaClick = (e: React.MouseEvent | React.TouchEvent) => {
+    // Allow video controls to work, but prevent propagation
+    e.stopPropagation();
+  };
+
   return (
-    <article className="bg-card border-b border-border feed-card">
+    <article className="bg-card border-b border-border feed-card" onClick={(e) => e.stopPropagation()}>
       {/* Header: Creator @ handle + Platform Badge */}
       <div className="flex items-center justify-between px-4 pt-3 pb-2">
         <div className="flex items-center gap-2">
@@ -88,7 +96,7 @@ const FeedCardComponent = ({ request, onCommentClick }: FeedCardProps) => {
 
       {/* Full-size Media Display (TikTok/Twitter style) */}
       {request.media_url && (
-        <div className="w-full bg-black">
+        <div className="w-full bg-black" onClick={handleMediaClick}>
           {request.media_type === 'video' ? (
             <video
               src={request.media_url}
@@ -96,12 +104,14 @@ const FeedCardComponent = ({ request, onCommentClick }: FeedCardProps) => {
               controls
               playsInline
               preload="metadata"
+              onClick={handleMediaClick}
             />
           ) : (
             <img
               src={request.media_url}
               alt={request.title}
               className="w-full max-h-[600px] object-contain"
+              onClick={handleMediaClick}
             />
           )}
         </div>

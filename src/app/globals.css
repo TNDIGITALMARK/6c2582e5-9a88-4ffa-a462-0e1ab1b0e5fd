@@ -427,12 +427,16 @@ html {
 body {
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
+  /* Prevent pull-to-refresh on the entire body */
+  overscroll-behavior-x: none;
 }
 
 /* Optimize video/image rendering */
 video, img {
   max-width: 100%;
   height: auto;
+  /* Prevent images from causing layout shifts */
+  display: block;
 }
 
 /* Hardware acceleration for smooth animations */
@@ -441,6 +445,8 @@ article, button, .modal {
   transform: translateZ(0);
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
+  /* Enable GPU acceleration for smooth scrolling */
+  will-change: transform;
 }
 
 /* Prevent text selection on double-tap (like TikTok) */
@@ -448,6 +454,8 @@ article, button, .modal {
   -webkit-user-select: none;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+  /* Prevent accidental drag/scroll on feed cards */
+  touch-action: pan-y pinch-zoom;
 }
 
 /* Allow text selection in description areas */
@@ -456,9 +464,25 @@ article, button, .modal {
   user-select: text;
 }
 
-/* Fast tap feedback */
-button:active {
+/* Fast tap feedback - only for interactive buttons */
+button:active:not(:disabled), .tap-target:active {
   transform: scale(0.98);
+  transition: transform 0.05s ease;
+}
+
+/* Smooth transitions for interactive elements */
+button, .tap-target {
+  transition: transform 0.1s ease, background-color 0.15s ease, color 0.15s ease;
+}
+
+/* Optimize scrolling container */
+.overflow-y-auto {
+  /* Enable smooth momentum scrolling on iOS */
+  -webkit-overflow-scrolling: touch;
+  /* Prevent scroll chaining */
+  overscroll-behavior: contain;
+  /* Optimize scrolling performance */
+  scroll-behavior: smooth;
 }
 
 /* Smooth modal animations */
